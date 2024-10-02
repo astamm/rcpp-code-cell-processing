@@ -12,9 +12,9 @@ chunk will result in failure to compile. This is because Rcpp code
 chunks make use of `Rcpp::sourceCpp()` function, which only accepts a
 single `.cpp` file by design.
 
-**Solution.** So first you should convert every pair of file
-(`myfile.h`, `myfile.cpp`) into a single file (`myfile.hpp`) and then
-include the `.hpp` file in the Rcpp code chunk.
+**Solution.** You should convert every pair of file (`myfile.h`,
+`myfile.cpp`) into a single file (`myfile.hpp`) and then include the
+`.hpp` file in the Rcpp code chunk.
 
 ### Second issue
 
