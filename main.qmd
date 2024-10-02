@@ -1,0 +1,81 @@
+---
+title: "A workaround to include multiple files in a single Rcpp chunk"
+format: html
+---
+
+## Description of issues and workarounds
+
+::: {.callout-important}
+## First issue
+If you have a habit of separating function declaration in a header file with
+`.h` extension and function implementation in the eponymous `.cpp` file, then
+including the `cpp` file or the `.h` file in a Rcpp code chunk will result in
+failure to compile. This is because Rcpp code chunks make use of
+`Rcpp::sourceCpp()` function, which only accepts a single `.cpp` file by design.
+:::
+
+::: {.callout-tip}
+## Solution
+So first you should convert every pair of file (`myfile.h`, `myfile.cpp`) into a
+single file (`myfile.hpp`) and then include the `.hpp` file in the Rcpp code
+chunk.
+:::
+
+::: {.callout-important}
+## Second issue
+If you have multiple files to include in a single Rcpp code chunk, then you
+cannot include them directly in the Rcpp code chunk. This is because, behind the scene, `Rcpp::sourceCpp()` creates a -- possibly temporary -- cache directory into which it copies only the single input file provided in the `file` argument.
+:::
+
+::: {.callout-tip}
+## Solution
+You can manually copy all the files you want to include in the Rcpp code chunk
+to the cache directory created by `Rcpp::sourceCpp()`. This can be done by
+setting the `cacheDir` argument of the `Rcpp::sourceCpp()` function to the
+desired cache directory via the `cacheDir` optional argument. Behind the scene,
+`Rcpp::sourceCpp()` subsequently creates a sub-directory in that directory whose
+name is platform-dependent and retrieved via
+`Rcpp:::.sourceCppPlatformCacheDir()`. We can therefore decide beforehand of the
+location of that cache directory, create it and copy the files we want to
+include in the Rcpp code chunk to that directory.
+:::
+
+::: {.callout-note}
+## Do not copy header files!
+If you have header files to include in the Rcpp code chunk, you should not copy
+as per the first issue above. Instead, you should convert them to `.hpp` files
+and include them in the Rcpp code chunk.
+:::
+
+## Live example
+
+The following code assumes that all your source files are in the `src`
+directory into the directory where your `.qmd` file is located. The code
+demonstrates how to include multiple files in a single Rcpp code chunk.
+
+The R code chunks are the ones handling the copying of the files to the cache
+directory and the deletion of the cache directory. They can be hidden in the
+final document by setting the code chunk option `include` to `false`.
+
+```{r}
+cache_dir_base <- "."
+cache_dir <- Rcpp:::.sourceCppPlatformCacheDir(cache_dir_base)
+fs::dir_create(cache_dir)
+fs::file_copy(
+  path = list.files("src", pattern = "*.hpp", full.names = TRUE), 
+  new_path = cache_dir, 
+  overwrite = TRUE
+)
+```
+
+```{Rcpp}
+#| file: src/hausdorff_utils.hpp
+```
+
+```{Rcpp, engine.opts = list(cacheDir = ".")}
+#| file: src/hausdorff_parallel.cpp
+```
+
+```{r}
+fs::dir_delete(cache_dir)
+```
